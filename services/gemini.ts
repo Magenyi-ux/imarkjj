@@ -1,13 +1,17 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { ExamType, Question, UserProfile, StudyMaterial } from "../types";
+import { ExamType, Question, UserProfile, StudyMaterial } from "../types.ts";
 
-const API_KEY = process.env.API_KEY || "";
+// Polyfill process for browser environments to prevent white-screen crashes
+if (typeof (window as any).process === 'undefined') {
+  (window as any).process = { env: {} };
+}
+
+const API_KEY = (window as any).process?.env?.API_KEY || "";
 const ai = new GoogleGenAI({ apiKey: API_KEY });
 
 /**
  * Enterprise Rate Limiter & Queue Manager
- * Prevents 429 errors by ensuring sequential execution with backoff.
  */
 class AI_Queue {
   private static queue: (() => Promise<any>)[] = [];
@@ -33,7 +37,6 @@ class AI_Queue {
     while (this.queue.length > 0) {
       const task = this.queue.shift();
       if (task) await task();
-      // Safe delay between requests for low-end phone CPU stability
       await new Promise(r => setTimeout(r, 800)); 
     }
     this.isProcessing = false;
@@ -60,11 +63,7 @@ export class AI_Service {
       const response = await ai.models.generateContent({
         model: this.model,
         contents: `Generate exactly 60 authentic past questions for the ${year} ${exam} exam (${subject}). 
-        Strict Requirements:
-        1. Historical Accuracy: Match the difficulty and weighting of that specific year.
-        2. Socratic Hints: Provide 2 levels of hints for study mode.
-        3. Real-world Context: Mention a specific Nigerian use-case for the concept (where it's used).
-        4. Deep Logic: Explain why the correct answer is right AND why common pitfalls (distractors) are wrong.`,
+        Include Socratic hints and detailed logic for correct/incorrect options.`,
         config: {
           tools: [{ googleSearch: {} }],
           responseMimeType: "application/json",
@@ -90,47 +89,12 @@ export class AI_Service {
     });
   }
 
-  static async chatWithAgent(
-    message: string, 
-    profile: UserProfile, 
-    onMemoryUpdate: (newMemory: string) => void
-  ): Promise<string> {
-    return AI_Queue.add(async () => {
-      const styleInstruction = profile.interactionStyle === 'CONCISE' 
-        ? "Be extremely direct. Brief answers." 
-        : "Be thorough and academic. Use step-by-step logic.";
-
-      const systemPrompt = `Expert Nigerian Tutor. User: ${profile.name}. Style: ${styleInstruction}.
-      Location: ${profile.location ? `Lat ${profile.location.latitude}, Lng ${profile.location.longitude}` : "Unknown"}.
-      Past Knowledge: ${profile.memories.join(", ")}.
-      
-      Always explain 'how, why, where'. Include 'MEMORY_UPDATE:' if you detect a persistent personality trait.`;
-
-      const response = await ai.models.generateContent({
-        model: this.model,
-        contents: message,
-        config: {
-          systemInstruction: systemPrompt,
-          tools: [{ googleMaps: {} }],
-        }
-      });
-
-      const text = response.text || "";
-      if (text.includes("MEMORY_UPDATE:")) {
-        const parts = text.split("MEMORY_UPDATE:");
-        onMemoryUpdate(parts[1].trim());
-        return parts[0].trim();
-      }
-      return text;
-    });
-  }
-
   static async generateTimetable(materials: StudyMaterial[], preferences: string): Promise<any> {
     return AI_Queue.add(async () => {
       const materialList = materials.map(m => m.name).join(", ");
       const response = await ai.models.generateContent({
         model: this.model,
-        contents: `Create a 7-day study plan for materials: ${materialList}. Preferences: ${preferences}.`,
+        contents: `Create a 7-day study plan for: ${materialList}. Preferences: ${preferences}.`,
         config: {
           responseMimeType: "application/json",
           responseSchema: {

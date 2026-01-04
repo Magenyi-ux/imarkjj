@@ -1,0 +1,8 @@
+{
+  "name": "EduVantage: JAMB/WAEC/NECO Master",
+  "description": "An enterprise-grade exam preparation platform featuring AI-powered past question analysis, automated study timetables, and an agentic chatbot that adapts to your learning style.",
+  "requestFramePermissions": [
+    "camera",
+    "geolocation"
+  ]
+}

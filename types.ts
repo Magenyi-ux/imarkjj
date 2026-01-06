@@ -12,18 +12,15 @@ export enum AppMode {
   TIMETABLE = 'TIMETABLE',
   CHAT = 'CHAT',
   PROFILE = 'PROFILE',
-  RESULTS = 'RESULTS',
-  NOTIFICATIONS = 'NOTIFICATIONS',
-  COMPLAINTS = 'COMPLAINTS'
+  RESULTS = 'RESULTS'
 }
 
-export interface AppNotification {
-  id: string;
-  type: 'CRITICAL' | 'REMINDER' | 'AI_INSIGHT';
-  title: string;
-  description: string;
-  timestamp: string;
-  isRead: boolean;
+export interface QuestionDeconstruction {
+  logic: string;
+  mnemonic: string;
+  atomic: string[];
+  roadmap: string;
+  scenario: string;
 }
 
 export interface Question {
@@ -33,54 +30,39 @@ export interface Question {
   correctAnswer: number;
   explanation: string;
   context: string;
-  hints: string[];
+  deconstruction: QuestionDeconstruction;
 }
 
-export interface QuizResult {
-  score: number;
-  total: number;
-  answers: Record<number, number>;
-  questions: Question[];
-  examType: ExamType;
-  timeSpent: number;
-}
-
-export interface ChatMessage {
-  role: 'user' | 'bot';
-  text: string;
-}
-
-export interface ActivitySession {
+export interface Activity {
   id: string;
-  timestamp: string;
-  context: string;
-  messages: ChatMessage[];
+  type: 'CHAT_SNIPPET' | 'EXAM_RESULT' | 'STUDY_NOTE';
+  title: string;
+  content: string;
+  timestamp: number;
 }
 
 export interface UserProfile {
   name: string;
-  email?: string;
-  isAuthenticated: boolean;
-  isVerified: boolean;
-  verificationCode?: string;
-  hasCompletedOnboarding: boolean;
   targetExam: ExamType;
   studyGoal: string;
   memories: string[];
-  activities: ActivitySession[];
   interactionStyle: 'DETAILED' | 'CONCISE' | 'NEUTRAL';
-  isChatbotEnabled: boolean;
   location?: {
     latitude: number;
     longitude: number;
   };
+  activities: Activity[];
+  chatbotEnabled: boolean;
 }
 
 export interface StudySession {
+  id: string;
   day: string;
   topic: string;
   startTime: string;
   endTime: string;
+  mastery: number; // 0 to 100
+  resources?: { title: string, url: string }[];
 }
 
 export interface StudyMaterial {
